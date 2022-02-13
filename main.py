@@ -32,7 +32,7 @@ async def on_ready():
 @bot.command()
 async def info(ctx):
       await ctx.send("Sending...")
-      await ctx.author.send("**This is the only command.**\n> This bot was made by `Megumin#1234`.\nIt automatically bans people across servers who are known raiders.\n**This is a selfhosted version, contact your local server owner for anything else.**")
+      await ctx.author.send("**This is the only command.**\n> This bot was made by `Scrumpy#0001`.\nIt automatically bans people across servers who are known raiders.\n**This is a selfhosted version, contact your local server owner for anything else.**")
 
 @commands.has_permissions(administrator=True)
 @bot.command()
