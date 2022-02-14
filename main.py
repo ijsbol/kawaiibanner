@@ -1,77 +1,70 @@
-import json
-import random
 import discord
-from discord import *
-from discord.ext.commands import Bot
-from discord.ext import commands
-from discord.ext import *
-from discord import *
-import time
-import datetime
 import asyncio
-from discord.ext import tasks
 
-botID = "TOKEN HERE OK?"
+from discord.ext import commands
 
-bot_status = "kb!info"
-
+token = "your token here"
+status = "kb!info"
 prefix = "kb!"
 
-Client = discord.Client() # Setting up "Client"
-bot = commands.Bot(command_prefix = prefix) # Initialising "Client" as "bot"
-
-bot.remove_command("help")
+bot = commands.Bot(command_prefix = prefix, help_command=None, status=discord.Status.online, activity=discord.Game(status)) # Initialising a Bot instance as "bot"
 
 @bot.event
 async def on_ready():
-      print("Ready...")
-      game = discord.Game(bot_status)
-      changeStatus = await bot.change_presence(status=discord.Status.online, activity=game)
-      bot.bans = []
+    print("Ready...") 
 
 @bot.command()
 async def info(ctx):
-      await ctx.send("Sending...")
-      await ctx.author.send("**This is the only command.**\n> This bot was made by `Scrumpy#0001`.\nIt automatically bans people across servers who are known raiders.\n**This is a selfhosted version, contact your local server owner for anything else.**")
+    await ctx.author.send("**This is the only command.**\n> This bot was made by `Scrumpy#0001`.\nIt automatically bans people across servers who are known raiders.\n**This is a selfhosted version, contact your local server owner for anything else.**")
+    await ctx.send("Sent you a DM.")
 
-@commands.has_permissions(administrator=True)
-@bot.command()
-async def unban(ctx, *, members):
-      members = members.split(" ")
-      await ctx.send("UNRIP **%s** users." % (len(members)))
-      for id_ in members:
-            for guild in bot.guilds:
-                  try:
-                        await guild.unban(user=discord.Object(id=id_), reason="KawaiiBanner Raid Prevention: Made a mistake.")
-                  except:
-                        pass
-      await ctx.send("Unbanned all of the **%s** users." % (len(members)))
 
-@commands.has_permissions(administrator=True)
+async def ban_member(_id: int, guild, reason: str):
+    try:
+        await guild.ban(_id, reason=reason)
+    except (discord.Forbidden, commands.UserNotFound):
+        pass
+
+
 @bot.command()
-async def ban(ctx, *, members):
-      members = members.split(" ")
-      await ctx.send("RIP **%s** people." % (len(members)))
-      for id_ in members:
-            for guild in bot.guilds:
-                  try:
-                        bot.bans.append(int(id_))
-                  except:
-                        pass
-      await ctx.send("Banned all of the **%s** people." % (len(members)))
+@commands.has_permissions(administrator=True)
+async def unban(ctx, members: commands.Greedy[discord.User], reason: str="KawaiiBanner Raid Prevention: Made a mistake."):
+    await ctx.send(f"UNRIP **{len(members)}** users.")
+    for member in members:
+        bot.bans.remove(member.id)
+        for guild in bot.guilds:
+            try:
+                await guild.unban(user=member.id, reason=reason)
+            except:
+                pass
+    await ctx.send(f"Unbanned all of the **{len(members)}** users.")
+
+@bot.command()
+@commands.has_permissions(administrator=True)
+async def ban(ctx, members: commands.Greedy[discord.User], reason: str="KawaiiBanner Raid Prevention: User is a known server-raider."):
+    await ctx.send(f"RIP **{len(members)}** people.")
+
+    ban_futures = [ban_member(member.id, guild, reason) for member in members for guild in bot.guilds]
+    await asyncio.gather(ban_futures)
+    await ctx.send(f"Banned all of the **{len(members)}** people.")
 
 @bot.event
-async def on_member_ban(guild, member):
-      if member.id in bot.bans:
-            pass
-      else:
-            bot.bans.append(member.id)
-            for guild_ in bot.guilds:
-                  if guild_ == guild:
-                        pass
-                  else:
-                        try:
-                              await guild_.ban(user=member, reason="KawaiiBanner Raid Prevention: User has been approved as a known server-raider.")
-                        except:
-                              pass
-bot.run(botID)
+async def on_member_join(member):
+    """Auto-Ban a member if they are in the ban list, when they join a server."""
+    if member.id not in bot.bans:
+        return
+
+    try:
+        await member.guild.ban(user=member, reason="KawaiiBanner Raid Prevention: User is a known server-raider.")
+    except:
+        pass
+
+@bot.event
+async def on_guild_join(guild):
+    """Ban all members who are in the ban list when the bot joins a server."""
+    ban_futures = [ban_member(member_id, guild, "KawaiiBanner Raid Prevention: User is a known server-raider.") for member_id in bot.bans if member_id in {m.id for m in guild.members}]
+    await asyncio.gather(*ban_futures)
+
+
+bot.bans = []
+bot.run(token)
