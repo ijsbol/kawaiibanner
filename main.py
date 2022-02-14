@@ -22,13 +22,13 @@ async def info(ctx):
 async def ban_member(_id: int, guild, reason: str):
     try:
         await guild.ban(_id, reason=reason)
-    except:
+    except (discord.Forbidden, commands.UserNotFound):
         pass
 
 
 @bot.command()
 @commands.has_permissions(administrator=True)
-async def unban(ctx, members: commands.Greedy[discord.Member], reason: str="KawaiiBanner Raid Prevention: Made a mistake."):
+async def unban(ctx, members: commands.Greedy[discord.User], reason: str="KawaiiBanner Raid Prevention: Made a mistake."):
     await ctx.send(f"UNRIP **{len(members)}** users.")
     for member in members:
         bot.bans.remove(member.id)
@@ -41,7 +41,7 @@ async def unban(ctx, members: commands.Greedy[discord.Member], reason: str="Kawa
 
 @bot.command()
 @commands.has_permissions(administrator=True)
-async def ban(ctx, members: commands.Greedy[discord.Member], reason: str="KawaiiBanner Raid Prevention: User is a known server-raider."):
+async def ban(ctx, members: commands.Greedy[discord.User], reason: str="KawaiiBanner Raid Prevention: User is a known server-raider."):
     await ctx.send(f"RIP **{len(members)}** people.")
 
     ban_futures = [ban_member(member.id, guild, reason) for member in members for guild in bot.guilds]
