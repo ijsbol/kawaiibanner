@@ -3,11 +3,11 @@ import asyncio
 
 from discord.ext import commands
 
-botID = "your token here"
-bot_status = "kb!info"
+token = "your token here"
+status = "kb!info"
 prefix = "kb!"
 
-bot = commands.Bot(command_prefix = prefix, help_command=None, status=discord.Status.online, activity=discord.Game(bot_status)) # Initialising a Bot instance as "bot"
+bot = commands.Bot(command_prefix = prefix, help_command=None, status=discord.Status.online, activity=discord.Game(status)) # Initialising a Bot instance as "bot"
 
 @bot.event
 async def on_ready():
@@ -67,4 +67,4 @@ async def on_guild_join(guild):
 
 
 bot.bans = []
-bot.run(botID)
+bot.run(token)
